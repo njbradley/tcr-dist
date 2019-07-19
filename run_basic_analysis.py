@@ -114,7 +114,7 @@ SUPPORT/FEEDBACK
 try:
     import numpy
 except:
-    print '[ERROR] Failed to import the python module scipy-- is it installed? I really need it.'
+    print '[ERROR] Failed to import the python module scipy-- is it installed? I really need it. Like alot'
     exit()
 
 try:
@@ -441,9 +441,11 @@ cmd = 'python {}/read_motifs.py {} {} --junction_bars --max_ng_lines {} --organi
 run(cmd)
 
 ## make kpca landscape plots
-cmd = 'python {}/make_kpca_plots.py --organism {} --clones_file {} --showmotifs > {}_kpca.log 2> {}_kpca.err'\
-    .format( path_to_scripts, organism, clones_file, clones_file, clones_file )
+kpca_clone_data_file = 'kpca_clone_data.csv'
+cmd = 'python {}/make_kpca_plots.py --organism {} --clones_file {} --showmotifs -o {} > {}_kpca.log 2> {}_kpca.err'\
+    .format( path_to_scripts, organism, clones_file, kpca_clone_data_file, clones_file, clones_file )
 run(cmd)
+
 
 
 ## make a summary table
@@ -843,4 +845,3 @@ out.write("""
 """)
 
 out.close()
-

@@ -108,6 +108,7 @@ for epitope in epitopes:
     mice = all_tcrs[epitope].keys()
     add_dat(epitope, 'num_individuals', len(mice) )
     tcrs = reduce( add, all_tcrs[epitope].values() )
+
     tcrs = [ [x[0], x[1], x[0]+x[1], int(x[2]) ] for x in tcrs ]
     add_dat(epitope, 'num_clones', len(tcrs) )
     add_dat(epitope, 'N', len(tcrs) )
@@ -120,11 +121,11 @@ for epitope in epitopes:
         add_dat(epitope, '{}_charge'.format(ab), get_mean_and_sdev( [ get_charge(x) for x in cdrs ] )[0] )
         add_dat(epitope, '{}_hydro1'.format(ab), get_mean_and_sdev( [    get_hp1(x) for x in cdrs ] )[0] )
         add_dat(epitope, '{}_hydro2'.format(ab), get_mean_and_sdev( [    get_hp2(x) for x in cdrs ] )[0] )
-
         all_scores[epitope]['{}_len'.format(ab)] = lens
         all_scores[epitope]['{}_charge'.format(ab)] = [ get_charge(x) for x in cdrs ]
         all_scores[epitope]['{}_hydro1'.format(ab)] = [ get_hp1(x) for x in cdrs ]
         all_scores[epitope]['{}_hydro2'.format(ab)] = [ get_hp2(x) for x in cdrs ]
+
 
 ## start getting these things
 
@@ -324,6 +325,3 @@ for ab in ['a','b','ab']:
 
 print 'making:',pngfile
 plt.savefig(pngfile)
-
-
-

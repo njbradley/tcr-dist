@@ -5,10 +5,12 @@ import html_colors
 import parse_tsv
 import util
 from operator import add
+from csv_file_helper import *
 
 with Parser(locals()) as p:
     p.str('organism').required()
     p.str('clones_file').required()
+    p.str('output_data_file').shorthand('o').required()
     p.str('pngfile_prefix')
     p.int('max_labels').default(5)
     p.float('distance_scale_factor').default(0.01)
@@ -96,6 +98,13 @@ for epitope,D in zip(epitopes,all_Ds):
     gram = 1 - ( D / Dmax )
     xy = pca.fit_transform(gram)
 
+    ## output pca:
+    xy = xy[:,:xy.shape[1]/3]
+    clone_ids = [t['clone_id'] for t in tcr_infos]
+    new_cols = ['clone_id'] + ['pca-'+str(i) for i in range(xy.shape[1])]
+    write_csv_file(output_data_file + '_{}.csv'.format(epitope), xy, clone_ids, new_cols)
+    assert len(clone_ids) == xy.shape[0]
+
     xs = xy[:,0]
     ys = xy[:,1]
 
@@ -103,6 +112,7 @@ for epitope,D in zip(epitopes,all_Ds):
     jc_all_xys[epitope] = xy
 all_vals = reduce( add, [list(xy[:,0]) for xy in all_xys ] ) + \
            reduce( add, [list(xy[:,1]) for xy in all_xys ] )
+
 
 
 if minval is None:

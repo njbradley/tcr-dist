@@ -205,5 +205,3 @@ if __name__ == '__main__':
                                                         consensus_annotations_csvfile )
 
     make_clones_file( organism, clones_file, clonotype2tcrs, clonotype2barcodes )
-
-
