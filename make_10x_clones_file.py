@@ -204,4 +204,14 @@ if __name__ == '__main__':
     clonotype2tcrs, clonotype2barcodes = read_tcr_data( organism, filtered_contig_annotations_csvfile,
                                                         consensus_annotations_csvfile )
 
+
+    with file('clonotype2barcodes.json','w') as f:
+        f.write(str(clonotype2barcodes))
+        f.close()
+
+
     make_clones_file( organism, clones_file, clonotype2tcrs, clonotype2barcodes )
+
+    with file(clones_file.replace('.tsv','.csv'),'w') as f:
+        f.write(file(clones_file).read().replace('\t',','))
+        f.close()

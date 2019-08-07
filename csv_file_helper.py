@@ -36,12 +36,12 @@ def write_csv_file(path, data, rownames = None, colnames = None):
     lines = []
     for i in range(len(list)):
         lines.append(','.join([str(j) for j in list[i]]))
-    if rownames:
+    if rownames != None:
         assert len(rownames) == data.shape[0]
         for i in range(len(lines)):
             lines[i] = rownames[i]+','+lines[i]
-    if colnames:
-        assert len(colnames) == data.shape[1] + 1 if rownames else 0
+    if colnames != None:
+        assert len(colnames) == data.shape[1] + (1 if rownames != None else 0)
         lines.insert(0,','.join(colnames))
     file.write('\n'.join(lines))
     file.close()

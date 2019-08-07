@@ -10,7 +10,8 @@ from csv_file_helper import *
 with Parser(locals()) as p:
     p.str('organism').required()
     p.str('clones_file').required()
-    p.str('output_data_file').shorthand('o').required()
+    p.str('output_data_file').shorthand('o').default('')
+    p.str('tsne_output_file').default('')
     p.str('pngfile_prefix')
     p.int('max_labels').default(5)
     p.float('distance_scale_factor').default(0.01)
@@ -97,14 +98,24 @@ for epitope,D in zip(epitopes,all_Ds):
     pca = KernelPCA(kernel='precomputed')
     gram = 1 - ( D / Dmax )
     xy = pca.fit_transform(gram)
-
-    ## output pca:
-    xy = xy[:,:xy.shape[1]/3]
+    
     clone_ids = [t['clone_id'] for t in tcr_infos]
-    new_cols = ['clone_id'] + ['pca-'+str(i) for i in range(xy.shape[1])]
-    write_csv_file(output_data_file + '_{}.csv'.format(epitope), xy, clone_ids, new_cols)
-    assert len(clone_ids) == xy.shape[0]
-
+    
+    ## output pca:
+    if output_data_file != '':
+        xy = xy[:,:xy.shape[1]/3]
+        new_cols = ['clone_id'] + ['pca-'+str(i) for i in range(xy.shape[1])]
+        write_csv_file(output_data_file + '_{}.csv'.format(epitope), xy, clone_ids, new_cols)
+        assert len(clone_ids) == xy.shape[0]
+    
+    if tsne_output_file != '':
+        from sklearn.manifold import TSNE
+        tsne = TSNE(n_components = 2, metric = 'precomputed')
+        tsne_data = tsne.fit_transform(D)
+        tsne_data = (tsne_data - np.min(tsne_data))/(np.max(tsne_data)-np.min(tsne_data))*10000
+        write_csv_file(tsne_output_file, tsne_data, clone_ids, ['clone_id','tSNE1', 'tSNE2'])
+        
+    
     xs = xy[:,0]
     ys = xy[:,1]
 

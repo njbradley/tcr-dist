@@ -5,7 +5,7 @@ from sys import argv
 try:
     file1, file2, output_filename = argv[1:]
 except:
-    print 'usage: join_cell_files.py first_file.csv second_file.csv'
+    print 'usage: join_cell_files.py first_file.csv second_file.csv output_file.csv'
     exit(0)
 
 data1, barcodes1, col1 = read_csv_file(file1, string = True)
