@@ -25,6 +25,7 @@ with Parser(locals()) as p:
     p.str('subject').described_as( 'Use this value for the subject field')
     p.flag('auto_ids').described_as('Auto-generate numbered TCR ids')
     p.str('id_base').described_as('If using --auto_ids, you can specify a base name for the IDs.')
+    p.str('sep').default('\t')
     p.flag('clobber').shorthand('c')
     p.flag('check_genes')
     p.multiword('extra_fields').cast(lambda x:x.split())
@@ -278,7 +279,7 @@ infields = []
 print 'making:',output_file
 
 out = open( output_file,'w')
-out.write( '\t'.join( outfields ) + '\n' )
+out.write( sep.join( outfields ) + '\n' )
 
 idcounter=0
 for inline in open( input_file,'rU'):
@@ -286,14 +287,14 @@ for inline in open( input_file,'rU'):
     if not infields:
         if line[0] == '#':
             line = line[1:]
-        infields = line.split('\t')
+        infields = line.split(sep)
         assert infields
         if extra_fields:
             for f in extra_fields:
                 assert f in infields
         ## we may want to add some fields to outfields
     else:
-        l = parse_tsv_line( line, infields )
+        l = parse_tsv_line( line, infields, sep=sep )
         l = map_field_names( l, input_format, output_format )
 
         if l is None: continue
@@ -368,6 +369,6 @@ for inline in open( input_file,'rU'):
                 print 'SKIPPING bad genes',outl
                 continue
 
-        out.write( make_tsv_line( outl, outfields ) + '\n' )
+        out.write( make_tsv_line( outl, outfields, sep=sep) + '\n' )
 
 out.close()

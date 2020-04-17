@@ -49,6 +49,5 @@ for barcode, line in all_data_list:
 data = data[:i,...]
 
 print data.shape,len(new_barcodes), len(new_cols)
-print new_cols
 
 write_csv_file(output_filename, data, new_barcodes, new_cols)

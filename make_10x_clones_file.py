@@ -44,9 +44,9 @@ def read_tcr_data( organism, contig_annotations_csvfile, consensus_annotations_c
         bc = l['barcode']
         clonotype = l['raw_clonotype_id']
         if clonotype =='None':
-            if l['productive'] not in [ 'None','False' ]:
-                assert l['productive'] == 'True'
-                #print 'clonotype==None: unproductive?',l['productive']
+            if l['productive'] not in [ 'None','FALSE', 'False' ]:
+                assert l['productive'] == 'TRUE' or l['productive'] == 'True'
+                # print 'clonotype==None: unproductive?',l['productive']
             continue
         if clonotype not in clonotype2barcodes:
             clonotype2barcodes[clonotype] = []
@@ -70,7 +70,7 @@ def read_tcr_data( organism, contig_annotations_csvfile, consensus_annotations_c
     clonotype2tcrs = {}
 
     for l in lines:
-        if l['productive'] == 'True':
+        if l['productive'] == 'TRUE' or l['productive'] == 'True':
             id = l['clonotype_id']
             if id not in clonotype2tcrs:
                 # dictionaries mapping from tcr to umi-count
@@ -117,7 +117,7 @@ def read_tcr_data( organism, contig_annotations_csvfile, consensus_annotations_c
             else:
                 print 'repeat?',id,ab,tcr_chain
         else:
-            if l['productive'] not in [ 'None','False' ]:
+            if l['productive'] not in [ 'None','FALSE', 'False' ]:
                 print 'unproductive?',l['productive']
 
     return clonotype2tcrs, clonotype2barcodes
@@ -132,7 +132,7 @@ def make_clones_file( organism, outfile, clonotype2tcrs, clonotype2barcodes ):
     '''
 
     tmpfile = outfile+'.tmp' # a temporary intermediate file
-
+    print tmpfile
     out = open(tmpfile,'w')
     outfields = 'clone_id subject clone_size va_gene ja_gene vb_gene jb_gene cdr3a cdr3a_nucseq cdr3b cdr3b_nucseq'\
         .split()
@@ -170,7 +170,7 @@ def make_clones_file( organism, outfile, clonotype2tcrs, clonotype2barcodes ):
             outl['num_betas']    = str(len(btcrs))
             out.write( make_tsv_line(outl,outfields)+'\n' )
     out.close()
-
+    
 
     cmd = 'python {}/file_converter.py --input_format clones --output_format clones --input_file {} --output_file {}  --organism {} --clobber --epitope UNK_E --check_genes --extra_fields {} '\
         .format( paths.path_to_scripts, tmpfile, outfile, organism, ' '.join(extra_fields) )
@@ -198,7 +198,8 @@ if __name__ == '__main__':
     if exists(clones_file) and not clobber:
         print 'ERROR -- clones_file {} already exists; use --clobber to overwrite'
         exit(1)
-
+    
+    print [organism]
     assert organism in ['human','mouse']
 
     clonotype2tcrs, clonotype2barcodes = read_tcr_data( organism, filtered_contig_annotations_csvfile,

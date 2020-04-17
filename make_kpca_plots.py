@@ -14,6 +14,7 @@ with Parser(locals()) as p:
     p.str('tsne_output_file').default('')
     p.str('pngfile_prefix')
     p.int('max_labels').default(5)
+    p.int('num_pcas').described_as('number of collums of pca to output. 0 if you want all of them').default(75)
     p.float('distance_scale_factor').default(0.01)
     p.float('paper_figs_dpi').default(100.)
     p.float('Dmax')
@@ -94,8 +95,12 @@ for epitope,D in zip(epitopes,all_Ds):
     old_Dmax = D.max()
     D = np.minimum( D, np.full( D.shape, Dmax ) )
     print 'true_Dmax:',old_Dmax,'using_Dmax:',Dmax,epitope
-
-    pca = KernelPCA(kernel='precomputed')
+    
+    
+    if num_pcas != 0:
+        pca = KernelPCA(num_pcas, kernel='precomputed')
+    else:
+        pca = KernelPCA(kernel='precomputed')
     gram = 1 - ( D / Dmax )
     xy = pca.fit_transform(gram)
     
@@ -103,9 +108,8 @@ for epitope,D in zip(epitopes,all_Ds):
     
     ## output pca:
     if output_data_file != '':
-        xy = xy[:,:xy.shape[1]/3]
         new_cols = ['clone_id'] + ['pca-'+str(i) for i in range(xy.shape[1])]
-        write_csv_file(output_data_file + '_{}.csv'.format(epitope), xy, clone_ids, new_cols)
+        write_csv_file(output_data_file, xy, clone_ids, new_cols)
         assert len(clone_ids) == xy.shape[0]
     
     if tsne_output_file != '':

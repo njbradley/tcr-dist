@@ -13,22 +13,25 @@ data,_,colnames = read_csv_file(filename, rownames = False, string = True)
 new_data = np.zeros(data.shape,dtype=data.dtype)
 for y in range(data.shape[1]):
     print y
-    try:
-        float(data[1,y])
-    except ValueError:
-        colnames[y] += '_to_int'
-        col = data[:,y]
-        categories = list(set(col.tolist()))
-        if categories == ['TRUE','FALSE']:
-            categories = ['FALSE','TRUE']
-        if(len(categories) > data.shape[0]/2):
-            col[:] = 0
-            print colnames[y]
-        else:
-            for i in range(len(categories)):
-                col[col==categories[i]] = i
-    else:
-        col = data[:,y]
+    if colnames[y] != 'barcode':
+        try:
+            float(data[1,y])
+        except ValueError:
+            colnames[y] += '_to_int'
+            col = data[:,y]
+            categories = list(set(col.tolist()))
+            if categories == ['TRUE','FALSE']:
+                categories = ['FALSE','TRUE']
+            if(len(categories) > data.shape[0]/2):
+                col[:] = 0
+                print colnames[y]
+            else:
+                for i in range(len(categories)):
+                    col[col==categories[i]] = i
+        else: 
+            col = data[:,y]
+    else: 
+        col = data[:, y]
     new_data[:,y] = col
 
 print new_data.shape

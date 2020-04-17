@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/fh/fast/newell_e/Nicholas/Tcr_scripts/tcr-dist/run_basic_analysis.py", line 270, in <module>
+    assert exists( clones_file )
+AssertionError

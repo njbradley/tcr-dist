@@ -8,7 +8,6 @@ with Parser(locals()) as p:
     p.str('clones_file').required()
     p.str('output_file').shorthand('o').required()
 
-
 def get_charge( cdr3 ):
     return sum( ( aa_charge.get(x,0.0) for x in cdr3 ) )
 

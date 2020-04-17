@@ -30,4 +30,4 @@ new_data = new_data[:new_data_index,:]
 
 print new_data.shape, len(barcodes), len(rows)
 
-write_csv_file(output_file, new_data, barcodes, ['barcode'] + rows[1:])
+write_csv_file(output_file, new_data, rownames = barcodes, colnames = ['barcode'] + rows[1:])
