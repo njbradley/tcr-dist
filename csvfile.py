@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import struct
 import os
@@ -5,21 +6,29 @@ import subprocess
 
 delimiters = {'csv':',', 'tsv':'\t'}
 
+
+if sys.stdout.isatty():
+	term_size = int(subprocess.check_output(['stty','size'], stderr=subprocess.PIPE).split()[1])
+	do_colors = True
+else:
+	term_size = 100
+	do_colors = False
+
 class color:
-   purple = '\033[95m'
-   cyan = '\033[96m'
-   darkcyan = '\033[36m'
-   blue = '\033[94m'
-   green = '\033[92m'
-   yellow = '\033[93m'
-   red = '\033[91m'
-   grey = '\033[90m'
-   bold = '\033[1m'
-   dim = '\033[2m'
-   underline = '\033[4m'
-   blink = '\033[5m'
-   inverse = '\033[7m'
-   end = '\033[0m'
+	purple = '\033[95m' if do_colors else ''
+	cyan = '\033[96m' if do_colors else ''
+	darkcyan = '\033[36m' if do_colors else ''
+	blue = '\033[94m' if do_colors else ''
+	green = '\033[92m' if do_colors else ''
+	yellow = '\033[93m' if do_colors else ''
+	red = '\033[91m' if do_colors else ''
+	grey = '\033[90m' if do_colors else ''
+	bold = '\033[1m' if do_colors else ''
+	dim = '\033[2m' if do_colors else ''
+	underline = '\033[4m' if do_colors else ''
+	blink = '\033[5m' if do_colors else ''
+	inverse = '\033[7m' if do_colors else ''
+	end = '\033[0m' if do_colors else ''
 
 class InFile:
 	def __init__(self, path):
@@ -30,16 +39,27 @@ class InFile:
 			self.fcs_init()
 			return
 		self.delim = delimiters[path.split('.')[-1]]
-		self.headers = self.file.readline()[:-1].split(self.delim)
+		firstline = self.file.readline()
+		self.comment = ''
+		while len(firstline) > 0 and firstline[0] == '#':
+			self.comment += firstline
+			firstline = self.file.readline()
+		self.headers = firstline[:-1].split(self.delim)
 	
 	def fcs_init(self):
 		self.file = open(self.path)
-		header = self.file.read(58).split()
+		header = self.file.read(58)
+		groups = [header[:10].strip()]
+		header = header[10:]
+		for i in range(0,len(header),8):
+			header_part = header[i:i+8].strip()
+			if (len(header_part) > 0):
+				groups.append(header_part)
+		header = groups
 		self.text_start = int(header[1])
 		self.data_start = int(header[3])
 		self.data_end = int(header[4])
 		text = self.file.read(self.data_start-58)
-		print self.text_start, self.data_start, header
 		self.delim = text[0]
 		params = text[1:].split(self.delim)
 		params = dict(zip(params[::2], params[1::2]))
@@ -59,7 +79,7 @@ class InFile:
 				'range': params['$P{}R'.format(i)]
 			}
 			self.headers.append(params['$P{}N'.format(i)])
-			self.line_bytes += int(params['$P{}B'.format(i)])/8
+			self.line_bytes += int(params['$P{}B'.format(i)])//8
 	
 	def readline_fcs(self):
 		data = self.file.read(self.line_bytes)
@@ -81,13 +101,18 @@ class OutFile:
 	def __init__(self, path, headers):
 		self.path = path
 		self.headers = headers
+		for i in range(len(headers)-1, -1, -1):
+			if headers.count(headers[i]) > 1:
+				print ("Warning: eliminating duplicate colums named '" + headers[i] + "'")
+				del headers[i]
 		self.file = open(path, 'w')
 		self.fcs = path.split('.')[-1] == 'fcs'
 		if self.fcs:
 			self.fcs_init()
 			return
 		self.delim = delimiters[path.split('.')[-1]]
-		self.file.write(self.delim.join(self.headers) + '\n')
+		self.lf = '\n'
+		self.file.write(self.delim.join(self.headers) + self.lf)
 	
 	def fcs_init(self):
 		self.params = {
@@ -140,7 +165,7 @@ class OutFile:
 				try:
 					num = float(line[head])
 				except ValueError:
-					print line[head], self.string_mappings
+					#num = -1
 					if line[head] in self.string_mappings:
 						num = self.string_mappings.index(line[head])
 					else:
@@ -149,23 +174,21 @@ class OutFile:
 			else:
 				num = 0
 			if (num > self.params['$P' + str(i+1) + 'R']):
-				self.params['$P' + str(i+1) + 'R'] = num
+				self.params['$P' + str(i+1) + 'R'] = num * 1.1
 			nums.append(num)
-		print nums
 		data = struct.pack(self.template, *nums)
-		print [data]
 		self.file.write(data)
 		self.params['$TOT'] += 1
 
 	def writeline(self, line):
 		if self.fcs:
 			return self.writeline_fcs(line)
-		for head in self.headers:
+		for i,head in enumerate(self.headers):
 			if head in line:
-				self.file.write(str(line[head]) + self.delim)
+				self.file.write(str(line[head]) + ( self.delim if i != len(self.headers)-1 else '' ))
 			else:
 				self.file.write(self.delim)
-		self.file.write('\n')
+		self.file.write(self.lf)
 	
 	def close(self):
 		if self.fcs:
@@ -175,6 +198,7 @@ class OutFile:
 		self.file.close()
 
 def view(path, row = None, col = None):
+	global do_colors
 	if row == None:
 		row = slice(0,2)
 	elif type(row) == str:
@@ -236,14 +260,15 @@ def view(path, row = None, col = None):
 			line = ifile.readline()
 			i += 1
 	
-	print color.inverse + path + ": " + ("rows " + str(row.start) + ':' + str(row.stop) if type(row) == slice else '') + color.end
-	
+	print (color.inverse + path + ": " + ("rows " + str(row.start) + ':' + str(row.stop) if type(row) == slice else '') + color.end + ' ')
+	print ('')
+    
 	num = len(lines)
 	if num == 0:
-		print color.red + "Range is empty!" + color.end
+		print (color.red + "Range is empty!" + color.end)
 		return
 	longest = []
-	vals = [[lines[j][i] for j in range(num)] for i in range(len(headers))]
+	vals = [[str(lines[j][i]) for j in range(num)] for i in range(len(headers))]
 	for i in range(len(headers)):
 		longest.append(max([len(headers[i]), max(map(len, vals[i]))]))
 		headers[i] += ' '*(longest[-1] - len(headers[i]))
@@ -251,7 +276,7 @@ def view(path, row = None, col = None):
 			vals[i][j] += ' '*(longest[-1] - len(vals[i][j]))
 	index = 0
 	linenum_longest = max(map(len,map(str,linenums))) + 2
-	term_size = int(subprocess.check_output(['stty','size'], stderr=subprocess.PIPE).split()[1])
+	
 	need_to_print_cols = [True]*len(headers)
 	while any(need_to_print_cols):
 		most_on_screen = 0
@@ -259,22 +284,22 @@ def view(path, row = None, col = None):
 			most_on_screen += 1
 		if most_on_screen > 0:
 			most_on_screen -= 1
-		print ' '*(linenum_longest + (5 if not all(need_to_print_cols) else 0)),
-		print color.green + (color.end+'|'+color.green).join(headers[index:index+most_on_screen]) + color.end
+		print (' '*(linenum_longest + (5 if not all(need_to_print_cols) else 0)), end='')
+		print (color.green + (color.end+'|'+color.green).join(headers[index:index+most_on_screen]) + color.end)
 		for i in range(num):
-			print color.grey + str(linenums[i]) + ":" + ' '*(linenum_longest - 1 - len(str(linenums[i]))) + color.end,
+			print (color.grey + str(linenums[i]) + ":" + ' '*(linenum_longest - 1 - len(str(linenums[i]))) + color.end, end='')
 			if not all(need_to_print_cols):
 				if i == 0:
-					print "... ",
+					print ("... ", end='')
 				else:
-					print "    ",
-			print '|'.join([j[i] for j in vals[index:index+most_on_screen]])
+					print ("    ", end='')
+			print ('|'.join([j[i] for j in vals[index:index+most_on_screen]]))
 		for i in range(index,index+most_on_screen):
 			need_to_print_cols[i] = False
 		index += most_on_screen
 		if any(need_to_print_cols):
-			print ' '#*(term_size/2-2) + '...'
-	print ''
+			print (' ')#*(term_size/2-2) + '...'
+	print ('')
 
 def select_cols(inpath, outpath, cols):
 	ifile = InFile(inpath)
@@ -294,6 +319,27 @@ def select_cols(inpath, outpath, cols):
 		ofile.writeline(line)
 		line = ifile.readline()
 	ofile.close()
+
+def join_row(paths, out_path):
+	infiles = []
+	outheaders = []
+	for path in paths:
+		infiles.append(InFile(path))
+		outheaders.extend(infiles[-1].headers)
+	outfile = OutFile(out_path, outheaders)
+	done = False
+	while not done:
+		outline = {}
+		for file in infiles:
+			line = file.readline()
+			if (line == None):
+				done = True
+				break;
+			outline.update(line)
+		if not done:
+			outfile.writeline(outline)
+	outfile.close()
+			
 
 def join_row_id(paths, out_path):
 	infiles = []
@@ -380,7 +426,20 @@ def convert_string(inpath, outpath):
         ofile.writeline(line)
         line = ifile.readline()
     ofile.close()
-                
+
+def remove_empty_rows(inpath, outpath):
+	ifile = InFile(inpath)
+	ofile = OutFile(outpath, ifile.headers)
+	line = ifile.readline()
+	while (line != None):
+		for head in ifile.headers:
+			if (line[head] == ""):
+				line = ifile.readline()
+				break;
+		else:
+			ofile.writeline(line)
+		line = ifile.readline()
+	ofile.close()
 
 if __name__ == "__main__":
 	try:
@@ -403,14 +462,18 @@ if __name__ == "__main__":
 			if col == None and len(sys.argv) > 4 and sys.argv[3] != '--row':
 				col = sys.argv[4]
 			view(file, row, col)
-		if mode == 'join-row':
+		if mode == 'join-row-id':
 			join_row_id(sys.argv[2:-1], sys.argv[-1])
+			view(sys.argv[-1])
+		if mode == 'join-row':
+			join_row(sys.argv[2:-1], sys.argv[-1])
 			view(sys.argv[-1])
 		if mode == 'join-col':
 			join_coll(sys.argv[2:-1], sys.argv[-1])
 			view(sys.argv[-1])
 		if mode == 'convert':
 			convert(sys.argv[2], sys.argv[3])
+			view (sys.argv[3])
 		if mode == 'select':
 			select_cols(sys.argv[2], sys.argv[3], sys.argv[4:])
 			view(sys.argv[3])
@@ -420,8 +483,11 @@ if __name__ == "__main__":
 		if mode == 'convert-string':
 			convert_string(sys.argv[2], sys.argv[3])
 			view(sys.argv[3])
+		if mode == 'remove-empty-rows':
+			remove_empty_rows(sys.argv[2], sys.argv[3])
+			view(sys.argv[3])
 	except IndexError:
-		print """usage: csv.py <mode> <input files> ... <output file> <optional args>
+		print( """usage: csv.py <mode> <input files> ... <output file> <optional args>
 mode is one of:
 	join-row: joins two or more files by cell index, matching them together by the first collumn
 	join-col: joins two files by collum, simple, just appends one file on the bottom of the other
@@ -434,4 +500,4 @@ mode is one of:
 		csvfile.py view input_file.tsv --row id=523  (the row can be specified by a specific collum, and all spots that match will be shown)
 		csvfile.py view input_file.tsv --row 3:9 --col barcode:counts    (a slice can be taken, which will display all collums/rows between)
 		csvfile.py view input_file.tsv 5:10 barcode  (without labels, it is assumed the first arg refers to rows and the second refers to cols)
-input files and output file are either .csv .fcs or .tsv files"""
+input files and output file are either .csv .fcs or .tsv files""")

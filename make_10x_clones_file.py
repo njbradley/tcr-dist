@@ -41,11 +41,16 @@ def read_tcr_data( organism, contig_annotations_csvfile, consensus_annotations_c
     _, lines = parse_csv_file(contig_annotations_csvfile)
     clonotype2barcodes = {}
     for l in lines:
+        for key, value in l.items():
+            if isinstance(value, str):
+                s = l[key]
+                if s.startswith(('"', "'")):
+                    s = s[1:]
         bc = l['barcode']
         clonotype = l['raw_clonotype_id']
         if clonotype =='None':
             if l['productive'] not in [ 'None','FALSE', 'False' ]:
-                assert l['productive'] == 'TRUE' or l['productive'] == 'True'
+                assert l['productive'].lower() == 'true'
                 # print 'clonotype==None: unproductive?',l['productive']
             continue
         if clonotype not in clonotype2barcodes:
@@ -70,7 +75,7 @@ def read_tcr_data( organism, contig_annotations_csvfile, consensus_annotations_c
     clonotype2tcrs = {}
 
     for l in lines:
-        if l['productive'] == 'TRUE' or l['productive'] == 'True':
+        if l['productive'].lower() == 'true':
             id = l['clonotype_id']
             if id not in clonotype2tcrs:
                 # dictionaries mapping from tcr to umi-count

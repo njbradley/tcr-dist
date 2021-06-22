@@ -4,7 +4,16 @@ import svg_basic
 import util
 import numpy as np
 
-
+try:
+    import sklearn
+except:
+    print """
+=============================================================================
+[ERROR] failed to import the python module sklearn (scikit-learn)
+[ERROR] Some analyses (kernelPCA plots, adjusted_mutual_information) will fail
+[ERROR] Take a look at http://scikit-learn.org/stable/install.html
+=============================================================================
+"""
 
 with Parser(locals()) as p:
     p.str('clones_file').required()
